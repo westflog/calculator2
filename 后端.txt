@@ -1,0 +1,58 @@
+from flask import Flask, render_template, request
+import pymysql
+
+app = Flask(__name__)
+
+# Database configuration
+db_config = {
+    'host': '127.0.0.1',
+    'port': 3306,
+    'user': 'root',
+    'password': 'Asd12345.',
+    'charset': 'utf8',
+    'db': 'history',
+}
+
+def get_db_connection():
+    return pymysql.connect(**db_config, cursorclass=pymysql.cursors.DictCursor)
+
+@app.route("/add/user", methods=["GET", "POST"])
+def add_user():
+    if request.method == "GET":
+        return render_template("add_user.html")
+
+    calculation = request.form.get("calculation")
+    result = request.form.get("result")
+
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO history (calculation, result) VALUES (%s, %s)"
+            cursor.execute(sql, (calculation, result))
+        conn.commit()
+    except pymysql.Error as e:
+        print(f"Error: {e}")
+    finally:
+        conn.close()
+
+    return render_template("add_user.html")
+
+@app.route("/show/user")
+def show_user():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            sql = "SELECT * FROM history"
+            cursor.execute(sql)
+            data_list = cursor.fetchall()
+    except pymysql.Error as e:
+        print(f"Error: {e}")
+    finally:
+        conn.close()
+
+    print(data_list)
+
+    return render_template("show_user.html", data_list=data_list)
+
+if __name__ == '__main__':
+    app.run()
